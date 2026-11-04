@@ -1,70 +1,40 @@
-# Social Analytics MCP Server
+# Instagram Analytics MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server for Instagram and Facebook analytics via the Meta Graph API.
+A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server for reading analytics from your own Instagram accounts through the Meta Graph API. All tools are read-only.
 
-## Features
-
-### Instagram
-
-- Account discovery and profile information
-- Account-level insights with demographic breakdowns
-- Media listing with engagement data
-- Per-post insights (images, videos, reels, carousels)
-- Stories retrieval
-- Hashtag search and media discovery
-- Content publishing rate limits
-- Mentioned/tagged media
-
-### Facebook
-
-- Page discovery and detailed page info
-- Page-level insights (media views, engagement, follows)
-- Post-level insights
-- Posts with inline metrics
-- Page feed with reactions/comments/shares
-- Known metrics reference
-
-### Shared
-
-- Pre-built analysis prompts for common workflows
-- Retry with exponential backoff on 429, 5xx and transient Graph API errors
-- Access tokens are removed from tool output
-- Cursor pagination on list tools
-- Structured error handling across both platforms
-- Debug logging via `DEBUG=social-analytics-mcp`
+Your Instagram account must be a Business or Creator account connected to a Facebook Page, because the API reaches Instagram through that Page.
 
 ## Quick Start
 
 1. **Install and build**
 
    ```bash
-   git clone https://github.com/BilalTariq01/instagram-analytics-mcp.git
+   git clone -b ig-hardening https://github.com/pluginfox/instagram-analytics-mcp.git
    cd instagram-analytics-mcp
-   npm install
+   npm ci
    npm run build
    ```
 
-2. **Get an access token** from the [Graph API Explorer](https://developers.facebook.com/tools/explorer/) with permissions:
-   - Instagram: `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`, `pages_show_list`
-   - Facebook: `read_insights`, `pages_read_engagement`, `pages_show_list` (generate a Page token for insights)
+2. **Get an access token** from the [Graph API Explorer](https://developers.facebook.com/tools/explorer/) with these permissions: `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`, `pages_show_list`. Explorer tokens are short-lived, so generate a long-lived token for regular use. There is no automatic refresh, so replace it when it expires.
 
-3. **Add to your MCP client** (see configuration below)
+3. **Add it to your MCP client** (see below)
 
 ## Configuration
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `INSTAGRAM_ACCESS_TOKEN` | For Instagram | — | Facebook User Access Token with Instagram permissions |
+| `INSTAGRAM_ACCESS_TOKEN` | Yes | — | Facebook User Access Token with the permissions above |
 | `INSTAGRAM_ACCOUNT_ID` | No | Auto-detected | Instagram Business Account ID |
-| `INSTAGRAM_API_VERSION` | No | `v23.0` | Instagram Graph API version |
-| `FACEBOOK_ACCESS_TOKEN` | For Facebook | — | Facebook Page Access Token (`facebook_list_pages` needs a User token) |
-| `FACEBOOK_PAGE_ID` | No | Use discovery tool | Facebook Page ID |
-| `FACEBOOK_API_VERSION` | No | `v22.0` | Facebook Graph API version |
-| `DEBUG` | No | — | Set to `social-analytics-mcp` for debug logs |
-
-You only need to configure access tokens for the platforms you want to use. Account and page IDs can be discovered using the built-in tools.
+| `INSTAGRAM_API_VERSION` | No | `v23.0` | Graph API version |
+| `DEBUG` | No | — | Set to `instagram-analytics-mcp` for debug logs |
 
 ## MCP Client Setup
+
+### Claude Code
+
+```bash
+claude mcp add instagram-analytics -e INSTAGRAM_ACCESS_TOKEN=your_token_here -- node /absolute/path/to/instagram-analytics-mcp/dist/index.js
+```
 
 ### Claude Desktop
 
@@ -74,29 +44,18 @@ You only need to configure access tokens for the platforms you want to use. Acco
 ```json
 {
   "mcpServers": {
-    "social-analytics": {
+    "instagram-analytics": {
       "command": "node",
       "args": ["/absolute/path/to/instagram-analytics-mcp/dist/index.js"],
       "env": {
-        "INSTAGRAM_ACCESS_TOKEN": "your_token_here",
-        "FACEBOOK_ACCESS_TOKEN": "your_token_here"
+        "INSTAGRAM_ACCESS_TOKEN": "your_token_here"
       }
     }
   }
 }
 ```
 
-### Claude Code
-
-```bash
-claude mcp add social-analytics node /absolute/path/to/instagram-analytics-mcp/dist/index.js \
-  -e INSTAGRAM_ACCESS_TOKEN=your_token_here \
-  -e FACEBOOK_ACCESS_TOKEN=your_token_here
-```
-
-## Available Tools
-
-### Instagram Tools
+## Tools
 
 | Tool | Description | Required Params |
 |---|---|---|
@@ -112,77 +71,42 @@ claude mcp add social-analytics node /absolute/path/to/instagram-analytics-mcp/d
 | `instagram_get_content_publishing_limit` | Check publishing rate limits | — |
 | `instagram_get_mentioned_media` | Get media where account is tagged | — |
 
-### Facebook Tools
-
-| Tool | Description | Required Params |
-|---|---|---|
-| `facebook_list_pages` | List accessible Facebook Pages | — |
-| `facebook_get_page_details` | Get page profile information | — |
-| `facebook_get_page_insights` | Get page-level insights | `metrics` |
-| `facebook_get_post_insights` | Get insights for a specific post | `post_id`, `metrics` |
-| `facebook_list_posts_with_insights` | List posts with inline metrics | `post_metrics` |
-| `facebook_get_page_feed` | Get page feed with engagement data | — |
-| `facebook_list_known_metrics` | List supported metrics reference | — |
-
-### Common Parameters
-
-Most Instagram tools accept an optional `account_id` parameter. If not provided, the account is auto-detected from the `INSTAGRAM_ACCOUNT_ID` environment variable or discovered automatically if only one account exists.
-
-Most Facebook tools accept an optional `page_id` parameter, which falls back to `FACEBOOK_PAGE_ID`.
+Most tools accept an optional `account_id`. Without one, the server uses `INSTAGRAM_ACCOUNT_ID`, or the only connected account if there is just one.
 
 List tools return `{ data, paging }`. When `paging.has_next` is true, pass `paging.cursors.after` as the `after` parameter to get the next page.
 
-## Available Prompts
+## Prompts
 
 | Prompt | Description |
 |---|---|
-| `analyze_instagram_performance` | Comprehensive Instagram account analysis |
-| `analyze_facebook_performance` | Comprehensive Facebook Page analysis |
-| `compare_post_performance` | Compare recent posts on either platform |
+| `analyze_instagram_performance` | Comprehensive account analysis |
+| `compare_post_performance` | Compare recent posts |
 | `get_audience_demographics` | Audience demographic breakdown |
-| `setup_platform` | Interactive setup guide |
+| `setup_instagram` | Interactive setup guide |
 
-## Programmatic Usage
+## Security
 
-```typescript
-import { InstagramClient, FacebookClient, createServer } from 'social-analytics-mcp';
-
-// Use clients directly
-const instagram = new InstagramClient({
-  accessToken: 'your_token',
-  accountId: 'optional_account_id',
-});
-const profile = await instagram.getUserProfile();
-
-// Or create an MCP server programmatically
-const server = createServer();
-```
+- Access tokens are removed from tool output and error messages.
+- The hashtag and tagged-media tools return captions written by other people. Treat them as untrusted, especially when this server runs alongside tools that can write or send data.
 
 ## Troubleshooting
 
-### "Access token is invalid"
+### "Access token is invalid" or code 190
 
-- Ensure your token has the required permissions
-- Short-lived tokens expire in 1 hour — generate a long-lived token
+- The token has expired or is invalid. Generate a new one.
 
-### "No Instagram Business account found"
+### "No Instagram Business accounts found"
 
-- Your Instagram account must be a Business or Creator account
-- It must be connected to a Facebook Page
+- The account must be a Business or Creator account connected to a Facebook Page.
 
-### "Unsupported metric"
+### Code 100 or "Unsupported metric"
 
-- Some metrics are media-type specific (e.g., `ig_reels_avg_watch_time` only works for reels)
-- Use `facebook_list_known_metrics` to see supported Facebook metrics
+- Some metrics are media-type specific (e.g., `ig_reels_avg_watch_time` only works for reels).
 
 ### Rate limits
 
-- The server retries 429, 5xx and transient Graph API errors with exponential backoff
-- Quota errors (codes 4, 17, 32, 613) are returned immediately, because a short backoff cannot clear them
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+- The server retries 429, 5xx and transient Graph API errors with exponential backoff.
+- Quota errors (codes 4, 17, 32, 613) are returned immediately, because a short backoff cannot clear them.
 
 ## License
 
@@ -190,4 +114,4 @@ MIT
 
 ---
 
-**Note**: This is an unofficial tool and is not affiliated with Meta, Facebook, or Instagram.
+**Note**: This is an unofficial tool and is not affiliated with Meta or Instagram.

@@ -1,9 +1,8 @@
 /**
- * Tool handlers for Social Analytics MCP Server
+ * Tool handlers for Instagram Analytics MCP Server
  */
 
 import { InstagramClient } from './platforms/instagram/client.js';
-import { FacebookClient } from './platforms/facebook/client.js';
 
 export async function handleInstagramTool(
   toolName: string,
@@ -97,82 +96,5 @@ export async function handleInstagramTool(
 
     default:
       throw new Error(`Unknown Instagram tool: ${toolName}`);
-  }
-}
-
-export async function handleFacebookTool(
-  toolName: string,
-  args: Record<string, unknown>,
-  client: FacebookClient | null
-): Promise<unknown> {
-  if (!client) {
-    throw new Error('Facebook client not initialized. Please set FACEBOOK_ACCESS_TOKEN in your MCP settings.');
-  }
-
-  switch (toolName) {
-    case 'facebook_list_pages':
-      return await client.listPages();
-
-    case 'facebook_get_page_details': {
-      const pageId = args.page_id as string | undefined;
-      return await client.getPageDetails(pageId);
-    }
-
-    case 'facebook_get_page_insights': {
-      const pageId = args.page_id as string | undefined;
-      const metrics = args.metrics as string[];
-      const period = args.period as string | undefined;
-      const since = args.since as string | undefined;
-      const until = args.until as string | undefined;
-      const limit = args.limit as number | undefined;
-
-      return await client.getPageInsights({
-        pageId,
-        metrics,
-        period,
-        since,
-        until,
-        limit,
-      });
-    }
-
-    case 'facebook_get_post_insights': {
-      const postId = args.post_id as string;
-      const metrics = args.metrics as string[];
-      const period = args.period as string | undefined;
-
-      return await client.getPostInsights({
-        postId,
-        metrics,
-        period,
-      });
-    }
-
-    case 'facebook_list_posts_with_insights': {
-      const pageId = args.page_id as string | undefined;
-      const postMetrics = args.post_metrics as string[];
-      const limit = args.limit as number | undefined;
-      const after = args.after as string | undefined;
-
-      return await client.listPostsWithInsights({
-        pageId,
-        postMetrics,
-        limit,
-        after,
-      });
-    }
-
-    case 'facebook_get_page_feed': {
-      const pageId = args.page_id as string | undefined;
-      const limit = args.limit as number | undefined;
-      const after = args.after as string | undefined;
-      return await client.getPageFeed(pageId, limit, after);
-    }
-
-    case 'facebook_list_known_metrics':
-      return client.listKnownMetrics();
-
-    default:
-      throw new Error(`Unknown Facebook tool: ${toolName}`);
   }
 }

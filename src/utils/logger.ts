@@ -3,7 +3,7 @@
  * MCP servers must not write to stdout (reserved for protocol messages)
  */
 
-const DEBUG_ENABLED = process.env.DEBUG?.includes('social-analytics-mcp') ?? false;
+const DEBUG_ENABLED = process.env.DEBUG?.includes('instagram-analytics-mcp') ?? false;
 
 function timestamp(): string {
   return new Date().toISOString();

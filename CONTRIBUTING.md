@@ -1,13 +1,13 @@
 # Contributing
 
-Thanks for your interest in contributing to Social Analytics MCP Server!
+Thanks for your interest in contributing to Instagram Analytics MCP Server!
 
 ## Development Setup
 
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd social-analytics-mcp
+   cd instagram-analytics-mcp
    ```
 
 2. Install dependencies:
@@ -39,16 +39,14 @@ src/
 ├── handlers.ts           # Tool execution routing
 ├── prompts.ts            # Pre-built analysis prompts
 ├── utils/
-│   ├── retry.ts          # Shared retry with exponential backoff
-│   ├── errors.ts         # Unified error types
+│   ├── retry.ts          # Retry with exponential backoff
+│   ├── errors.ts         # API error type
+│   ├── redact.ts         # Removes tokens from tool output
 │   └── logger.ts         # Structured stderr logger
 └── platforms/
-    ├── instagram/
-    │   ├── client.ts     # Instagram Graph API client
-    │   └── types.ts      # Instagram type definitions
-    └── facebook/
-        ├── client.ts     # Facebook Graph API client
-        └── types.ts      # Facebook type definitions
+    └── instagram/
+        ├── client.ts     # Instagram Graph API client
+        └── types.ts      # Instagram type definitions
 ```
 
 ## Code Style
@@ -56,23 +54,14 @@ src/
 - TypeScript strict mode is enabled
 - Use ESM imports (`.js` extensions in import paths)
 - MCP servers must not write to stdout — use `logger` (writes to stderr)
-- Error classes should extend `SocialAnalyticsError` or platform-specific errors
-- All API requests should use the shared `requestWithRetry` utility
+- All API requests should use the `requestWithRetry` utility
 
 ## Adding a New Tool
 
 1. Define the tool schema in `src/tools.ts`
 2. Add a handler case in `src/handlers.ts`
-3. Implement the client method in the appropriate platform client
-4. Add any new types to the platform's `types.ts`
-
-## Adding a New Platform
-
-1. Create `src/platforms/<platform>/client.ts` and `types.ts`
-2. Add tool definitions with `<platform>_` prefix in `src/tools.ts`
-3. Add a handler function in `src/handlers.ts`
-4. Initialize the client in `src/index.ts`
-5. Add routing in the `CallToolRequestSchema` handler
+3. Implement the client method in `src/platforms/instagram/client.ts`
+4. Add any new types to `src/platforms/instagram/types.ts`
 
 ## Pull Request Process
 

@@ -1,19 +1,25 @@
 /**
- * Prompt definitions for Social Analytics MCP Server
+ * Prompt definitions for Instagram Analytics MCP Server
  */
 
 import { Prompt } from '@modelcontextprotocol/sdk/types.js';
+
+type PromptContent = {
+  messages: Array<{ role: 'user' | 'assistant'; content: { type: 'text'; text: string } }>;
+};
+
+const ACCOUNT_ID_ARGUMENT = {
+  name: 'account_id',
+  description: 'Instagram account ID (optional if configured)',
+  required: false,
+};
 
 export const PROMPTS: Prompt[] = [
   {
     name: 'analyze_instagram_performance',
     description: 'Analyze Instagram account performance with key metrics and insights',
     arguments: [
-      {
-        name: 'account_id',
-        description: 'Instagram account ID (optional if configured)',
-        required: false,
-      },
+      ACCOUNT_ID_ARGUMENT,
       {
         name: 'timeframe',
         description: 'Analysis timeframe: this_week or this_month',
@@ -22,35 +28,10 @@ export const PROMPTS: Prompt[] = [
     ],
   },
   {
-    name: 'analyze_facebook_performance',
-    description: 'Analyze Facebook Page performance with key metrics and insights',
-    arguments: [
-      {
-        name: 'page_id',
-        description: 'Facebook Page ID (optional if configured)',
-        required: false,
-      },
-      {
-        name: 'period',
-        description: 'Analysis period: day, week, or days_28',
-        required: false,
-      },
-    ],
-  },
-  {
     name: 'compare_post_performance',
-    description: 'Compare performance of recent posts on Instagram or Facebook',
+    description: 'Compare performance of recent Instagram posts',
     arguments: [
-      {
-        name: 'platform',
-        description: 'Platform to analyze: instagram or facebook',
-        required: true,
-      },
-      {
-        name: 'account_id',
-        description: 'Account/Page ID (optional if configured)',
-        required: false,
-      },
+      ACCOUNT_ID_ARGUMENT,
       {
         name: 'limit',
         description: 'Number of recent posts to compare (default: 10)',
@@ -60,48 +41,26 @@ export const PROMPTS: Prompt[] = [
   },
   {
     name: 'get_audience_demographics',
-    description: 'Get detailed audience demographics for Instagram or Facebook',
-    arguments: [
-      {
-        name: 'platform',
-        description: 'Platform to analyze: instagram or facebook',
-        required: true,
-      },
-      {
-        name: 'account_id',
-        description: 'Account/Page ID (optional if configured)',
-        required: false,
-      },
-    ],
+    description: 'Get detailed Instagram audience demographics',
+    arguments: [ACCOUNT_ID_ARGUMENT],
   },
   {
-    name: 'setup_platform',
-    description: 'Guide user through setting up Instagram or Facebook analytics',
-    arguments: [
-      {
-        name: 'platform',
-        description: 'Platform to setup: instagram or facebook',
-        required: true,
-      },
-    ],
+    name: 'setup_instagram',
+    description: 'Guide user through setting up Instagram analytics',
   },
 ];
 
-export function getPromptContent(
-  name: string,
-  args: Record<string, string>
-): { messages: Array<{ role: 'user' | 'assistant'; content: { type: 'text'; text: string } }> } {
+function userMessage(text: string): PromptContent {
+  return { messages: [{ role: 'user', content: { type: 'text', text } }] };
+}
+
+export function getPromptContent(name: string, args: Record<string, string>): PromptContent {
+  const accountId = args.account_id || 'configured account';
+
   switch (name) {
     case 'analyze_instagram_performance': {
-      const accountId = args.account_id || 'configured account';
       const timeframe = args.timeframe || 'this_month';
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: `Analyze Instagram performance for ${accountId} over ${timeframe}. Please:
+      return userMessage(`Analyze Instagram performance for ${accountId} over ${timeframe}. Please:
 
 1. First, use instagram_list_accounts to verify the account is accessible
 2. Get profile information using instagram_get_profile
@@ -119,131 +78,27 @@ Provide a comprehensive analysis including:
 - Engagement trends
 - Top performing content
 - Audience interaction patterns
-- Actionable recommendations`,
-            },
-          },
-        ],
-      };
-    }
-
-    case 'analyze_facebook_performance': {
-      const pageId = args.page_id || 'configured page';
-      const period = args.period || 'days_28';
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: `Analyze Facebook Page performance for ${pageId} over ${period}. Please:
-
-1. First, use facebook_list_pages to verify the page is accessible
-2. Fetch page insights with these metrics:
-   - page_media_view
-   - page_total_media_view_unique
-   - page_post_engagements
-   - page_views_total
-   - Use period: ${period}
-3. Get recent posts with insights using facebook_list_posts_with_insights
-   - post_metrics: post_media_view, post_total_media_view_unique
-   - limit: 10
-
-Provide a comprehensive analysis including:
-- Overall page performance and reach
-- Engagement metrics and trends
-- Top performing posts
-- Audience growth patterns
-- Content strategy recommendations`,
-            },
-          },
-        ],
-      };
+- Actionable recommendations`);
     }
 
     case 'compare_post_performance': {
-      const platform = args.platform;
-      const accountId = args.account_id || 'configured account';
       const limit = args.limit || '10';
-
-      if (platform === 'instagram') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Compare performance of the last ${limit} Instagram posts for ${accountId}:
+      return userMessage(`Compare performance of the last ${limit} Instagram posts for ${accountId}:
 
 1. Use instagram_list_media to get recent posts (limit: ${limit})
-2. For each post, get insights with metrics:
-   - likes
-   - comments
-   - reach
-   - saved
-   - shares (if available)
-   - engagement_rate (calculate from likes + comments / reach)
+2. For each post, get insights with metrics: likes, comments, reach, saved, shares
+3. Calculate engagement rate for each post as (likes + comments) / reach
 
 Provide a comparison showing:
 - Performance ranking of posts
 - Best and worst performing content
 - Content type analysis (photo vs video vs carousel)
 - Engagement patterns
-- Recommendations for future content`,
-              },
-            },
-          ],
-        };
-      } else if (platform === 'facebook') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Compare performance of the last ${limit} Facebook posts for ${accountId}:
-
-1. Use facebook_list_posts_with_insights with post_metrics:
-   - post_media_view
-   - post_total_media_view_unique
-   - limit: ${limit}
-
-Provide a comparison showing:
-- Performance ranking of posts
-- Best and worst performing content
-- Engagement rate analysis
-- Content timing patterns
-- Recommendations for optimization`,
-              },
-            },
-          ],
-        };
-      }
-
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: 'Please specify platform as either "instagram" or "facebook"',
-            },
-          },
-        ],
-      };
+- Recommendations for future content`);
     }
 
-    case 'get_audience_demographics': {
-      const platform = args.platform;
-      const accountId = args.account_id || 'configured account';
-
-      if (platform === 'instagram') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Get detailed audience demographics for Instagram ${accountId}:
+    case 'get_audience_demographics':
+      return userMessage(`Get detailed audience demographics for Instagram ${accountId}:
 
 1. Use instagram_get_account_insights with:
    - metrics: ["engaged_audience_demographics", "follower_demographics"]
@@ -257,59 +112,10 @@ Provide a comprehensive demographic report including:
 - Age and gender breakdown
 - Follower vs engaged audience comparison
 - Insights about target audience alignment
-- Recommendations for content localization`,
-              },
-            },
-          ],
-        };
-      } else if (platform === 'facebook') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Get detailed audience demographics for Facebook Page ${accountId}:
+- Recommendations for content localization`);
 
-Note: Facebook Page Insights API has limited demographic data compared to Instagram.
-Use facebook_get_page_insights with available demographic metrics if supported by your page type.
-
-For detailed demographics, you may need to:
-1. Check Facebook Page Insights dashboard directly
-2. Use Facebook Ads Manager for audience insights
-3. Request additional API permissions if available
-
-Provide available demographic information and guide on accessing more detailed data.`,
-              },
-            },
-          ],
-        };
-      }
-
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: 'Please specify platform as either "instagram" or "facebook"',
-            },
-          },
-        ],
-      };
-    }
-
-    case 'setup_platform': {
-      const platform = args.platform;
-
-      if (platform === 'instagram') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Let's set up Instagram analytics. Follow these steps:
+    case 'setup_instagram':
+      return userMessage(`Let's set up Instagram analytics. Follow these steps:
 
 1. **Get Access Token**
    - Go to Facebook Graph API Explorer: https://developers.facebook.com/tools/explorer/
@@ -333,72 +139,9 @@ Provide available demographic information and guide on accessing more detailed d
    - Use instagram_get_profile to verify access
    - Try instagram_get_account_insights to test analytics
 
-You're ready to analyze Instagram performance!`,
-              },
-            },
-          ],
-        };
-      } else if (platform === 'facebook') {
-        return {
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Let's set up Facebook Page analytics. Follow these steps:
-
-1. **Get Access Token**
-   - Go to Facebook Graph API Explorer: https://developers.facebook.com/tools/explorer/
-   - Select your app or create a new one
-   - Request permissions: read_insights, pages_read_engagement, pages_show_list
-   - Generate a Page Access Token for the page you want to analyze (insights need a Page token)
-
-2. **Find Your Page ID**
-   - It is shown in Graph API Explorer next to the page
-   - Page tokens cannot use facebook_list_pages; that tool needs a User token
-
-3. **Configure MCP Settings**
-   - In your MCP client settings (e.g., Claude Desktop config), add:
-     {
-       "FACEBOOK_ACCESS_TOKEN": "your_access_token_here"
-     }
-   - Optionally add FACEBOOK_PAGE_ID if you want a default page
-
-4. **Verify Setup**
-   - Use facebook_get_page_insights to test analytics
-   - Try facebook_list_posts_with_insights to see recent posts
-
-You're ready to analyze Facebook Page performance!`,
-              },
-            },
-          ],
-        };
-      }
-
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: 'Please specify platform as either "instagram" or "facebook"',
-            },
-          },
-        ],
-      };
-    }
+You're ready to analyze Instagram performance!`);
 
     default:
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: `Unknown prompt: ${name}`,
-            },
-          },
-        ],
-      };
+      return userMessage(`Unknown prompt: ${name}`);
   }
 }

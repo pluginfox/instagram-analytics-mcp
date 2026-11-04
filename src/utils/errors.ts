@@ -1,20 +1,8 @@
 /**
- * Unified error types for Social Analytics MCP Server
+ * Error type for Instagram Graph API failures
  */
 
-export class SocialAnalyticsError extends Error {
-  public readonly platform: string;
-  public readonly code: string;
-
-  constructor(message: string, platform: string, code: string) {
-    super(message);
-    this.name = 'SocialAnalyticsError';
-    this.platform = platform;
-    this.code = code;
-  }
-}
-
-export class InstagramApiError extends SocialAnalyticsError {
+export class InstagramApiError extends Error {
   public readonly apiCode?: number;
   public readonly apiType?: string;
   public readonly fbtrace_id?: string;
@@ -29,27 +17,10 @@ export class InstagramApiError extends SocialAnalyticsError {
     if (opts.code) parts.push(`(Code: ${opts.code})`);
     if (opts.fbtrace_id) parts.push(`[Trace: ${opts.fbtrace_id}]`);
 
-    super(parts.join(' '), 'instagram', opts.type || 'APIError');
+    super(parts.join(' '));
     this.name = 'InstagramApiError';
     this.apiCode = opts.code;
     this.apiType = opts.type;
     this.fbtrace_id = opts.fbtrace_id;
-  }
-}
-
-export interface NormalizedError {
-  code: string;
-  subcode?: string;
-  message: string;
-  raw?: unknown;
-}
-
-export class FacebookApiError extends Error {
-  normalized: NormalizedError;
-
-  constructor(normalized: NormalizedError) {
-    super(normalized.message);
-    this.name = 'FacebookApiError';
-    this.normalized = normalized;
   }
 }

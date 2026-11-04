@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Social Analytics MCP Server
- * Unified server supporting Instagram and Facebook analytics
+ * Instagram Analytics MCP Server
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -17,10 +16,9 @@ import dotenv from 'dotenv';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { InstagramClient } from './platforms/instagram/client.js';
-import { FacebookClient } from './platforms/facebook/client.js';
 import { getAllTools } from './tools.js';
 import { PROMPTS, getPromptContent } from './prompts.js';
-import { handleInstagramTool, handleFacebookTool } from './handlers.js';
+import { handleInstagramTool } from './handlers.js';
 import { logger } from './utils/logger.js';
 import { serializeForClient } from './utils/redact.js';
 
@@ -30,20 +28,12 @@ dotenv.config();
 // Package version kept in sync
 const VERSION = '3.0.0';
 
-// Initialize clients
+// Initialize client
 const instagramClient = process.env.INSTAGRAM_ACCESS_TOKEN
   ? new InstagramClient({
       accessToken: process.env.INSTAGRAM_ACCESS_TOKEN,
       accountId: process.env.INSTAGRAM_ACCOUNT_ID,
       apiVersion: process.env.INSTAGRAM_API_VERSION,
-    })
-  : null;
-
-const facebookClient = process.env.FACEBOOK_ACCESS_TOKEN
-  ? new FacebookClient({
-      accessToken: process.env.FACEBOOK_ACCESS_TOKEN,
-      pageId: process.env.FACEBOOK_PAGE_ID,
-      defaultApiVersion: process.env.FACEBOOK_API_VERSION,
     })
   : null;
 
@@ -53,7 +43,7 @@ const facebookClient = process.env.FACEBOOK_ACCESS_TOKEN
 export function createServer() {
   const server = new Server(
     {
-      name: 'social-analytics-mcp',
+      name: 'instagram-analytics-mcp',
       version: VERSION,
     },
     {
@@ -102,16 +92,7 @@ export function createServer() {
     const { name, arguments: args } = request.params;
 
     try {
-      let result: unknown;
-
-      if (name.startsWith('instagram_')) {
-        result = await handleInstagramTool(name, (args ?? {}) as Record<string, unknown>, instagramClient);
-      } else if (name.startsWith('facebook_')) {
-        result = await handleFacebookTool(name, (args ?? {}) as Record<string, unknown>, facebookClient);
-      } else {
-        throw new Error(`Unknown tool: ${name}`);
-      }
-
+      const result = await handleInstagramTool(name, (args ?? {}) as Record<string, unknown>, instagramClient);
       return formatSuccess(result);
     } catch (error) {
       return formatError(error);
@@ -144,12 +125,11 @@ export function createServer() {
 const server = createServer();
 
 // Export for programmatic usage
-export { server, InstagramClient, FacebookClient };
+export { server, InstagramClient };
 export { getAllTools } from './tools.js';
 export { PROMPTS, getPromptContent } from './prompts.js';
-export { handleInstagramTool, handleFacebookTool } from './handlers.js';
+export { handleInstagramTool } from './handlers.js';
 export type { InstagramConfig } from './platforms/instagram/types.js';
-export type { FacebookConfig } from './platforms/facebook/types.js';
 
 // Start server when run directly
 const entryPoint = process.argv[1] ? realpathSync(process.argv[1]) : undefined;
@@ -157,9 +137,8 @@ const entryPoint = process.argv[1] ? realpathSync(process.argv[1]) : undefined;
 if (entryPoint === fileURLToPath(import.meta.url)) {
   const transport = new StdioServerTransport();
 
-  logger.info(`Social Analytics MCP Server v${VERSION} starting...`, {
-    instagram: !!instagramClient,
-    facebook: !!facebookClient,
+  logger.info(`Instagram Analytics MCP Server v${VERSION} starting...`, {
+    configured: !!instagramClient,
   });
 
   server.connect(transport).catch((error) => {

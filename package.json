@@ -1,7 +1,7 @@
 {
-  "name": "social-analytics-mcp",
+  "name": "instagram-analytics-mcp",
   "version": "3.0.0",
-  "description": "MCP server for Instagram and Facebook analytics via the Graph API",
+  "description": "MCP server for Instagram analytics via the Graph API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -12,7 +12,7 @@
     }
   },
   "bin": {
-    "social-analytics-mcp": "./dist/index.js"
+    "instagram-analytics-mcp": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -34,7 +34,6 @@
   "keywords": [
     "mcp",
     "instagram",
-    "facebook",
     "analytics",
     "insights",
     "social-media",

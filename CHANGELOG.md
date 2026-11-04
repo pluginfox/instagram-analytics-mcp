@@ -4,17 +4,20 @@ All notable changes to the Social Analytics MCP Server will be documented in thi
 
 ## [Unreleased]
 
+### Removed
+
+- Facebook Page tools, client, prompts and configuration. This fork is Instagram only.
+- The `platform` argument from prompts; `setup_platform` is now `setup_instagram`
+
 ### Security
 
 - Access tokens are removed from tool output and errors, including Graph API paging URLs
-- `facebook_list_pages` no longer requests Page access tokens
-- Removed `facebook_validate_token`, which required passing a token through the model
 
 ### Changed
 
-- Instagram and Facebook metrics, periods and prompts updated to match current Meta docs
+- Renamed the package, command, server and `DEBUG` value to `instagram-analytics-mcp`
+- Metrics, periods and prompts updated to match current Meta docs
 - `instagram_list_media`, `instagram_get_stories`, `instagram_get_hashtag_media` and `instagram_get_mentioned_media` now return `{ data, paging }` and accept `after`
-- `facebook_list_posts_with_insights` and `facebook_get_page_feed` accept `after`
 - Removed `period` from `instagram_get_media_insights`; media insights are always lifetime
 - Account discovery uses one paginated request and no longer hides API errors
 - Requests time out after 30 seconds; transient Graph API errors are retried
