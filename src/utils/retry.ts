@@ -17,7 +17,8 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
 };
 
 /**
- * Execute an Axios request with retry logic for 5xx and 429 errors.
+ * Execute an Axios request with retry logic for 5xx, 429 and errors Meta flags as transient.
+ * Quota errors (codes 4, 17, 32, 613) are not retried: a short backoff cannot clear them.
  * Respects Retry-After header when present.
  */
 export async function requestWithRetry<T>(
@@ -34,7 +35,8 @@ export async function requestWithRetry<T>(
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      const isRetryable = (status && status >= 500 && status < 600) || status === 429;
+      const isTransient = error.response?.data?.error?.is_transient === true;
+      const isRetryable = (status && status >= 500 && status < 600) || status === 429 || isTransient;
 
       if (isRetryable && attempt < opts.maxRetries) {
         const retryAfterHeader = error.response?.headers?.['retry-after'] as string | undefined;

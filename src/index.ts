@@ -14,12 +14,15 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { InstagramClient } from './platforms/instagram/client.js';
 import { FacebookClient } from './platforms/facebook/client.js';
 import { getAllTools } from './tools.js';
 import { PROMPTS, getPromptContent } from './prompts.js';
 import { handleInstagramTool, handleFacebookTool } from './handlers.js';
 import { logger } from './utils/logger.js';
+import { serializeForClient } from './utils/redact.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,7 +70,7 @@ export function createServer() {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(data, null, 2),
+          text: serializeForClient(data),
         },
       ],
     };
@@ -80,7 +83,7 @@ export function createServer() {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({ error: message }, null, 2),
+          text: serializeForClient({ error: message }),
         },
       ],
       isError: true,
@@ -149,14 +152,18 @@ export type { InstagramConfig } from './platforms/instagram/types.js';
 export type { FacebookConfig } from './platforms/facebook/types.js';
 
 // Start server when run directly
-const transport = new StdioServerTransport();
+const entryPoint = process.argv[1] ? realpathSync(process.argv[1]) : undefined;
 
-logger.info(`Social Analytics MCP Server v${VERSION} starting...`, {
-  instagram: !!instagramClient,
-  facebook: !!facebookClient,
-});
+if (entryPoint === fileURLToPath(import.meta.url)) {
+  const transport = new StdioServerTransport();
 
-server.connect(transport).catch((error) => {
-  logger.error('Failed to start server', error);
-  process.exit(1);
-});
+  logger.info(`Social Analytics MCP Server v${VERSION} starting...`, {
+    instagram: !!instagramClient,
+    facebook: !!facebookClient,
+  });
+
+  server.connect(transport).catch((error) => {
+    logger.error('Failed to start server', error);
+    process.exit(1);
+  });
+}

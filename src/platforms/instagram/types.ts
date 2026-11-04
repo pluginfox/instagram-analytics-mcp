@@ -153,10 +153,6 @@ export type MetricType = 'time_series' | 'total_value';
 
 // Timeframe for demographic metrics
 export type Timeframe =
-  | 'last_14_days'
-  | 'last_30_days'
-  | 'last_90_days'
-  | 'prev_month'
   | 'this_month'
   | 'this_week';
 
@@ -182,8 +178,10 @@ export type MediaMetric =
   | 'profile_activity'
   | 'navigation'
   | 'replies'
-  | 'avg_time_watched'
-  | 'total_time_watched';
+  | 'ig_reels_avg_watch_time'
+  | 'ig_reels_video_view_total_time'
+  | 'reels_skip_rate'
+  | 'reposts';
 
 // Period types
-export type Period = 'day' | 'week' | 'days_28' | 'lifetime';
+export type Period = 'day' | 'lifetime';

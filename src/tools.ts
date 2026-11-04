@@ -30,7 +30,7 @@ export const INSTAGRAM_TOOLS: Tool[] = [
   },
   {
     name: 'instagram_get_account_insights',
-    description: 'Get account-level insights and analytics for Instagram. Supports demographic breakdowns and time series data.',
+    description: 'Get account-level insights for Instagram. Use period=day for activity metrics, with since/until for a date range. Demographic metrics (follower_demographics, engaged_audience_demographics) need period=lifetime, metric_type=total_value and a timeframe.',
     inputSchema: {
       type: 'object',
       required: ['metrics', 'metric_type', 'period'],
@@ -68,8 +68,8 @@ export const INSTAGRAM_TOOLS: Tool[] = [
         },
         period: {
           type: 'string',
-          enum: ['day', 'week', 'days_28', 'lifetime'],
-          description: 'Time period for insights',
+          enum: ['day', 'lifetime'],
+          description: 'Use day for activity metrics and lifetime for demographic metrics',
         },
         since: {
           type: 'number',
@@ -81,7 +81,7 @@ export const INSTAGRAM_TOOLS: Tool[] = [
         },
         timeframe: {
           type: 'string',
-          enum: ['this_month', 'this_week', 'last_14_days', 'last_30_days', 'last_90_days', 'prev_month'],
+          enum: ['this_month', 'this_week'],
           description: 'Required for demographic metrics (engaged_audience_demographics, follower_demographics)',
         },
         breakdown: {
@@ -106,6 +106,10 @@ export const INSTAGRAM_TOOLS: Tool[] = [
           type: 'number',
           description: 'Number of media items to retrieve (default: 25, max: 100)',
         },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
+        },
       },
       required: [],
     },
@@ -127,7 +131,7 @@ export const INSTAGRAM_TOOLS: Tool[] = [
   {
     name: 'instagram_get_media_insights',
     description:
-      'Get insights for a specific Instagram media post. Note: Available metrics depend on media type. For Reels/Videos: use views, likes, comments, shares, reach, saved, total_interactions, replies, avg_time_watched, total_time_watched. For Images/Carousels: use likes, comments, reach, saved, shares, total_interactions. Story-specific metrics (replies, navigation) only work on story media.',
+      'Get insights for a specific Instagram media post. Note: Available metrics depend on media type. For Reels: views, likes, comments, shares, reach, saved, total_interactions, ig_reels_avg_watch_time, ig_reels_video_view_total_time, reels_skip_rate. For Images/Carousels: likes, comments, reach, saved, shares, total_interactions. Story-specific metrics (replies, navigation) only work on story media. Always returns lifetime values.',
     inputSchema: {
       type: 'object',
       required: ['media_id', 'metrics'],
@@ -153,16 +157,13 @@ export const INSTAGRAM_TOOLS: Tool[] = [
               'profile_activity',
               'navigation',
               'replies',
-              'avg_time_watched',
-              'total_time_watched',
+              'ig_reels_avg_watch_time',
+              'ig_reels_video_view_total_time',
+              'reels_skip_rate',
+              'reposts',
             ],
           },
           description: 'Array of metrics to retrieve. Choose metrics appropriate for the media type.',
-        },
-        period: {
-          type: 'string',
-          enum: ['day', 'week', 'days_28', 'lifetime'],
-          description: 'Time period (default: lifetime)',
         },
       },
     },
@@ -176,6 +177,10 @@ export const INSTAGRAM_TOOLS: Tool[] = [
         account_id: {
           type: 'string',
           description: 'Instagram account ID. Optional if set via environment variable.',
+        },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
         },
       },
       required: [],
@@ -223,6 +228,10 @@ export const INSTAGRAM_TOOLS: Tool[] = [
           type: 'number',
           description: 'Number of media items to retrieve (default: 25)',
         },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
+        },
       },
     },
   },
@@ -253,6 +262,10 @@ export const INSTAGRAM_TOOLS: Tool[] = [
         limit: {
           type: 'number',
           description: 'Number of media items to retrieve (default: 25)',
+        },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
         },
       },
       required: [],
@@ -286,7 +299,7 @@ export const FACEBOOK_TOOLS: Tool[] = [
   },
   {
     name: 'facebook_get_page_insights',
-    description: 'Fetch page-level insights for a Facebook Page. Common metrics: page_impressions, page_impressions_unique, page_engaged_users, page_post_engagements, page_views_total, page_fans.',
+    description: 'Fetch page-level insights for a Facebook Page. Common metrics: page_media_view, page_total_media_view_unique, page_post_engagements, page_views_total, page_follows. Requires a Page access token.',
     inputSchema: {
       type: 'object',
       required: ['metrics'],
@@ -299,7 +312,7 @@ export const FACEBOOK_TOOLS: Tool[] = [
           type: 'array',
           items: { type: 'string' },
           minItems: 1,
-          description: 'List of page insight metric names (e.g., page_impressions, page_engaged_users)',
+          description: 'List of page insight metric names (e.g., page_media_view, page_post_engagements)',
         },
         period: {
           type: 'string',
@@ -325,7 +338,7 @@ export const FACEBOOK_TOOLS: Tool[] = [
   },
   {
     name: 'facebook_get_post_insights',
-    description: 'Fetch insights for a specific Facebook Page post. Common metrics: post_impressions, post_impressions_unique, post_engaged_users.',
+    description: 'Fetch insights for a specific Facebook Page post. Common metrics: post_media_view, post_total_media_view_unique. Requires a Page access token.',
     inputSchema: {
       type: 'object',
       required: ['post_id', 'metrics'],
@@ -371,6 +384,10 @@ export const FACEBOOK_TOOLS: Tool[] = [
           maximum: 100,
           description: 'Number of posts to retrieve (default: 25)',
         },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
+        },
       },
     },
   },
@@ -390,6 +407,10 @@ export const FACEBOOK_TOOLS: Tool[] = [
           maximum: 100,
           description: 'Number of posts to retrieve (default: 25)',
         },
+        after: {
+          type: 'string',
+          description: 'Cursor from paging.cursors.after in a previous response. Fetch the next page when paging.has_next is true.',
+        },
       },
       required: [],
     },
@@ -401,25 +422,6 @@ export const FACEBOOK_TOOLS: Tool[] = [
       type: 'object',
       properties: {},
       required: [],
-    },
-  },
-  {
-    name: 'facebook_validate_token',
-    description: 'Validate a Facebook access token by checking it against the /me endpoint. Returns token validity, user ID, and name.',
-    inputSchema: {
-      type: 'object',
-      required: ['access_token'],
-      properties: {
-        access_token: {
-          type: 'string',
-          description: 'The access token to validate',
-        },
-        fields: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Fields to request (default: id, name)',
-        },
-      },
     },
   },
 ];

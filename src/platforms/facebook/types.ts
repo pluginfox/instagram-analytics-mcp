@@ -129,7 +129,6 @@ export interface ValidateTokenResult {
 export interface FacebookPage {
   id: string;
   name: string;
-  access_token?: string;
   category?: string;
   tasks?: string[];
 }

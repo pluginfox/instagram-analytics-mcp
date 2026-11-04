@@ -31,19 +31,16 @@ const DEFAULT_API_VERSION = 'v22.0';
 const DEFAULT_POST_FIELDS = 'message,created_time,permalink_url';
 
 const KNOWN_PAGE_METRICS: KnownMetric[] = [
-  { name: 'page_impressions', periods: ['day', 'week', 'days_28'] },
-  { name: 'page_impressions_unique', periods: ['day', 'week', 'days_28'] },
-  { name: 'page_engaged_users', periods: ['day', 'week', 'days_28'] },
+  { name: 'page_media_view', periods: ['day', 'week', 'days_28'] },
+  { name: 'page_total_media_view_unique', periods: ['day', 'week', 'days_28'] },
   { name: 'page_post_engagements', periods: ['day', 'week', 'days_28'] },
   { name: 'page_views_total', periods: ['day', 'week', 'days_28'] },
-  { name: 'page_fans', periods: ['day', 'week', 'days_28', 'lifetime'] },
-  { name: 'page_fan_adds_unique', periods: ['day', 'week', 'days_28', 'lifetime'], notes: 'Requires period when not lifetime' },
+  { name: 'page_follows', periods: ['day'] },
 ];
 
 const KNOWN_POST_METRICS: KnownMetric[] = [
-  { name: 'post_impressions', periods: ['day', 'week', 'days_28'] },
-  { name: 'post_impressions_unique', periods: ['day', 'week', 'days_28'] },
-  { name: 'post_engaged_users', periods: ['day', 'week', 'days_28'] },
+  { name: 'post_media_view', periods: ['lifetime'] },
+  { name: 'post_total_media_view_unique', periods: ['lifetime'] },
 ];
 
 export class FacebookClient {
@@ -54,6 +51,7 @@ export class FacebookClient {
     this.config = config;
     this.axiosInstance = axios.create({
       baseURL: GRAPH_API_BASE_URL,
+      timeout: 30_000,
     });
 
     logger.debug('Facebook client initialized', {
@@ -175,7 +173,7 @@ export class FacebookClient {
       url: this.buildPath(apiVersion, 'me/accounts'),
       params: {
         access_token: token,
-        fields: 'id,name,access_token,category,tasks',
+        fields: 'id,name,category,tasks',
       },
     });
   }
@@ -199,7 +197,7 @@ export class FacebookClient {
     });
   }
 
-  async getPageFeed(pageId?: string, limit?: number): Promise<PageFeedResponse> {
+  async getPageFeed(pageId?: string, limit?: number, after?: string): Promise<PageFeedResponse> {
     const resolvedPageId = pageId || this.config.pageId;
     if (!resolvedPageId) {
       throw new FacebookApiError({ code: 'VALIDATION', message: 'page_id is required', raw: null });
@@ -213,8 +211,9 @@ export class FacebookClient {
       url: this.buildPath(apiVersion, `${resolvedPageId}/feed`),
       params: {
         access_token: accessToken,
-        fields: 'id,message,created_time,permalink_url,full_picture,type,shares,reactions.summary(true),comments.summary(true)',
+        fields: 'id,message,created_time,permalink_url,full_picture,shares,reactions.summary(true),comments.summary(true)',
         limit: String(limit ?? 25),
+        ...(after ? { after } : {}),
       },
     });
   }

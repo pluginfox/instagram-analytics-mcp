@@ -12,7 +12,6 @@ import {
   AccountInsight,
   MediaInsight,
   MediaItem,
-  StoryItem,
   UserProfile,
   InsightsResponse,
   MediaResponse,
@@ -45,6 +44,7 @@ export class InstagramClient {
 
     this.axiosInstance = axios.create({
       baseURL,
+      timeout: 30_000,
       params: {
         access_token: this.accessToken,
       },
@@ -58,43 +58,48 @@ export class InstagramClient {
    */
   async getAvailableAccounts(): Promise<Array<{ id: string; username: string; name: string; pageId: string; pageName: string }>> {
     try {
-      const response = await this.request<{ data: Array<{ id: string; name: string }> }>({
-        url: '/me/accounts',
-      });
-      const pages = response.data;
-
-      if (!pages || pages.length === 0) {
-        throw new InstagramApiError({
-          message: 'No Facebook pages found. Please connect a Facebook page to your Instagram Business account.',
-        });
-      }
-
       const accounts = [];
-      for (const page of pages) {
-        try {
-          const igResponse = await this.request<{
-            instagram_business_account?: { id: string; username?: string; name?: string };
-          }>({
-            url: `/${page.id}`,
-            params: {
-              fields: 'instagram_business_account{id,username,name}',
-              access_token: this.accessToken,
-            },
-          });
+      let pageCount = 0;
+      let after: string | undefined;
 
-          if (igResponse.instagram_business_account) {
+      do {
+        const response: {
+          data?: Array<{
+            id: string;
+            name: string;
+            instagram_business_account?: { id: string; username?: string; name?: string };
+          }>;
+          paging?: { cursors?: { after?: string }; next?: string };
+        } = await this.request({
+          url: '/me/accounts',
+          params: {
+            fields: 'id,name,instagram_business_account{id,username,name}',
+            limit: 100,
+            ...(after ? { after } : {}),
+          },
+        });
+
+        for (const page of response.data ?? []) {
+          pageCount += 1;
+          const account = page.instagram_business_account;
+          if (account) {
             accounts.push({
-              id: igResponse.instagram_business_account.id,
-              username: igResponse.instagram_business_account.username || 'Unknown',
-              name: igResponse.instagram_business_account.name || 'Unknown',
+              id: account.id,
+              username: account.username || 'Unknown',
+              name: account.name || 'Unknown',
               pageId: page.id,
               pageName: page.name,
             });
           }
-        } catch {
-          // Skip pages without Instagram accounts
-          continue;
         }
+
+        after = response.paging?.next ? response.paging.cursors?.after : undefined;
+      } while (after);
+
+      if (pageCount === 0) {
+        throw new InstagramApiError({
+          message: 'No Facebook pages found. Please connect a Facebook page to your Instagram Business account.',
+        });
       }
 
       if (accounts.length === 0) {
@@ -210,17 +215,17 @@ export class InstagramClient {
   /**
    * Get media list
    */
-  async getMedia(limit: number = 25, accountId?: string): Promise<MediaItem[]> {
+  async getMedia(limit: number = 25, accountId?: string, after?: string): Promise<MediaResponse> {
     try {
       const targetAccountId = accountId || (await this.getAccountId());
-      const response = await this.request<MediaResponse>({
+      return await this.request<MediaResponse>({
         url: `/${targetAccountId}/media`,
         params: {
           fields: 'id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count,media_product_type,thumbnail_url',
           limit,
+          ...(after ? { after } : {}),
         },
       });
-      return response.data;
     } catch (error) {
       if (error instanceof InstagramApiError) throw error;
       throw this.wrapError('Failed to get media', error);
@@ -230,13 +235,13 @@ export class InstagramClient {
   /**
    * Get insights for a specific media item
    */
-  async getMediaInsights(mediaId: string, metrics: MediaMetric[], period: Period = 'lifetime'): Promise<MediaInsight[]> {
+  async getMediaInsights(mediaId: string, metrics: MediaMetric[]): Promise<MediaInsight[]> {
     try {
       const response = await this.request<InsightsResponse>({
         url: `/${mediaId}/insights`,
         params: {
           metric: metrics.join(','),
-          period,
+          period: 'lifetime',
         },
       });
       return response.data as MediaInsight[];
@@ -266,16 +271,16 @@ export class InstagramClient {
   /**
    * Get recent stories for the account
    */
-  async getStories(accountId?: string): Promise<StoryItem[]> {
+  async getStories(accountId?: string, after?: string): Promise<StoryResponse> {
     try {
       const targetAccountId = accountId || (await this.getAccountId());
-      const response = await this.request<StoryResponse>({
+      return await this.request<StoryResponse>({
         url: `/${targetAccountId}/stories`,
         params: {
           fields: 'id,caption,media_type,media_url,permalink,timestamp',
+          ...(after ? { after } : {}),
         },
       });
-      return response.data;
     } catch (error) {
       if (error instanceof InstagramApiError) throw error;
       throw this.wrapError('Failed to get stories', error);
@@ -314,19 +319,20 @@ export class InstagramClient {
     hashtagId: string,
     type: 'top_media' | 'recent_media',
     accountId?: string,
-    limit?: number
-  ): Promise<MediaItem[]> {
+    limit?: number,
+    after?: string
+  ): Promise<HashtagMediaResponse> {
     try {
       const targetAccountId = accountId || (await this.getAccountId());
-      const response = await this.request<HashtagMediaResponse>({
+      return await this.request<HashtagMediaResponse>({
         url: `/${hashtagId}/${type}`,
         params: {
           user_id: targetAccountId,
           fields: 'id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count',
           limit: limit || 25,
+          ...(after ? { after } : {}),
         },
       });
-      return response.data;
     } catch (error) {
       if (error instanceof InstagramApiError) throw error;
       throw this.wrapError('Failed to get hashtag media', error);
@@ -356,18 +362,19 @@ export class InstagramClient {
    */
   async getMentionedMedia(
     accountId?: string,
-    limit?: number
-  ): Promise<MediaItem[]> {
+    limit?: number,
+    after?: string
+  ): Promise<MediaResponse> {
     try {
       const targetAccountId = accountId || (await this.getAccountId());
-      const response = await this.request<{ data: MediaItem[] }>({
+      return await this.request<MediaResponse>({
         url: `/${targetAccountId}/tags`,
         params: {
           fields: 'id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count',
           limit: limit || 25,
+          ...(after ? { after } : {}),
         },
       });
-      return response.data;
     } catch (error) {
       if (error instanceof InstagramApiError) throw error;
       throw this.wrapError('Failed to get mentioned media', error);

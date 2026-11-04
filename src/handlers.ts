@@ -46,7 +46,8 @@ export async function handleInstagramTool(
     case 'instagram_list_media': {
       const accountId = args.account_id as string | undefined;
       const limit = args.limit as number | undefined;
-      return await client.getMedia(limit, accountId);
+      const after = args.after as string | undefined;
+      return await client.getMedia(limit, accountId, after);
     }
 
     case 'instagram_get_media_details': {
@@ -57,13 +58,13 @@ export async function handleInstagramTool(
     case 'instagram_get_media_insights': {
       const mediaId = args.media_id as string;
       const metrics = args.metrics as string[];
-      const period = args.period as string | undefined;
-      return await client.getMediaInsights(mediaId, metrics as any[], period as any);
+      return await client.getMediaInsights(mediaId, metrics as any[]);
     }
 
     case 'instagram_get_stories': {
       const accountId = args.account_id as string | undefined;
-      return await client.getStories(accountId);
+      const after = args.after as string | undefined;
+      return await client.getStories(accountId, after);
     }
 
     case 'instagram_get_hashtag_search': {
@@ -78,7 +79,8 @@ export async function handleInstagramTool(
       const type = (args.type as 'top_media' | 'recent_media') || 'top_media';
       const accountId = args.account_id as string | undefined;
       const limit = args.limit as number | undefined;
-      return await client.getHashtagMedia(hashtagId, type, accountId, limit);
+      const after = args.after as string | undefined;
+      return await client.getHashtagMedia(hashtagId, type, accountId, limit, after);
     }
 
     case 'instagram_get_content_publishing_limit': {
@@ -89,7 +91,8 @@ export async function handleInstagramTool(
     case 'instagram_get_mentioned_media': {
       const accountId = args.account_id as string | undefined;
       const limit = args.limit as number | undefined;
-      return await client.getMentionedMedia(accountId, limit);
+      const after = args.after as string | undefined;
+      return await client.getMentionedMedia(accountId, limit, after);
     }
 
     default:
@@ -149,28 +152,25 @@ export async function handleFacebookTool(
       const pageId = args.page_id as string | undefined;
       const postMetrics = args.post_metrics as string[];
       const limit = args.limit as number | undefined;
+      const after = args.after as string | undefined;
 
       return await client.listPostsWithInsights({
         pageId,
         postMetrics,
         limit,
+        after,
       });
     }
 
     case 'facebook_get_page_feed': {
       const pageId = args.page_id as string | undefined;
       const limit = args.limit as number | undefined;
-      return await client.getPageFeed(pageId, limit);
+      const after = args.after as string | undefined;
+      return await client.getPageFeed(pageId, limit, after);
     }
 
     case 'facebook_list_known_metrics':
       return client.listKnownMetrics();
-
-    case 'facebook_validate_token': {
-      const accessToken = args.access_token as string;
-      const fields = args.fields as string[] | undefined;
-      return await client.validateAccessToken({ accessToken, fields });
-    }
 
     default:
       throw new Error(`Unknown Facebook tool: ${toolName}`);

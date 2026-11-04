@@ -110,7 +110,7 @@ export function getPromptContent(
    - reach
    - profile_links_taps
    - total_interactions
-   - Use metric_type: total_value, period: lifetime, timeframe: ${timeframe}
+   - Use metric_type: total_value, period: day, and since/until Unix timestamps covering ${timeframe}
 4. Get recent media posts using instagram_list_media (limit: 10)
 5. For top 3 posts, get detailed insights with metrics: likes, comments, reach, saved
 
@@ -139,14 +139,13 @@ Provide a comprehensive analysis including:
 
 1. First, use facebook_list_pages to verify the page is accessible
 2. Fetch page insights with these metrics:
-   - page_impressions
-   - page_impressions_unique
-   - page_engaged_users
+   - page_media_view
+   - page_total_media_view_unique
    - page_post_engagements
    - page_views_total
    - Use period: ${period}
 3. Get recent posts with insights using facebook_list_posts_with_insights
-   - post_metrics: post_impressions, post_engaged_users
+   - post_metrics: post_media_view, post_total_media_view_unique
    - limit: 10
 
 Provide a comprehensive analysis including:
@@ -204,9 +203,8 @@ Provide a comparison showing:
                 text: `Compare performance of the last ${limit} Facebook posts for ${accountId}:
 
 1. Use facebook_list_posts_with_insights with post_metrics:
-   - post_impressions
-   - post_impressions_unique
-   - post_engaged_users
+   - post_media_view
+   - post_total_media_view_unique
    - limit: ${limit}
 
 Provide a comparison showing:
@@ -316,7 +314,7 @@ Provide available demographic information and guide on accessing more detailed d
 1. **Get Access Token**
    - Go to Facebook Graph API Explorer: https://developers.facebook.com/tools/explorer/
    - Select your app or create a new one
-   - Request permissions: instagram_basic, instagram_manage_insights, pages_read_engagement
+   - Request permissions: instagram_basic, instagram_manage_insights, pages_read_engagement, pages_show_list
    - Generate User Access Token
 
 2. **Discover Your Account**
@@ -352,13 +350,12 @@ You're ready to analyze Instagram performance!`,
 1. **Get Access Token**
    - Go to Facebook Graph API Explorer: https://developers.facebook.com/tools/explorer/
    - Select your app or create a new one
-   - Request permissions: read_insights, pages_read_engagement
-   - Generate User Access Token
+   - Request permissions: read_insights, pages_read_engagement, pages_show_list
+   - Generate a Page Access Token for the page you want to analyze (insights need a Page token)
 
-2. **Discover Your Pages**
-   - Use the tool: facebook_list_pages
-   - This will show all Facebook Pages you manage
-   - Copy the page id you want to analyze
+2. **Find Your Page ID**
+   - It is shown in Graph API Explorer next to the page
+   - Page tokens cannot use facebook_list_pages; that tool needs a User token
 
 3. **Configure MCP Settings**
    - In your MCP client settings (e.g., Claude Desktop config), add:
